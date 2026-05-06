@@ -227,6 +227,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <button class="tab" onclick="switchTab('summary')">สรุป</button>
 </div>
 
+<!-- ADD -->
 <div id="tab-add" class="section active">
   <div class="setup-banner" id="setup-banner">
     <strong>ตั้งค่า Google Sheets</strong><br>
@@ -268,6 +269,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <button class="submit" id="submit-btn" onclick="addTransaction()">บันทึกรายการ</button>
 </div>
 
+<!-- HISTORY -->
 <div id="tab-history" class="section">
   <div class="filter-row">
     <select id="f-type" onchange="renderHistory()">
@@ -280,6 +282,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <div id="tx-list"></div>
 </div>
 
+<!-- SUMMARY -->
 <div id="tab-summary" class="section">
   <div class="month-pick">
     <label>เดือน</label>
@@ -301,7 +304,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <div id="cat-list"></div>
 </div>
 
-<div class="modal-overlay" id="scan-modal" onclick="handleOverlayClickOutside(event)">
+<!-- Scan Modal -->
+<div class="modal-overlay" id="scan-modal" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">📷 สแกนใบเสร็จ / สลิป</div>
@@ -355,86 +359,20 @@ let currentType = 'expense';
 let barInst = null;
 let scanResult = null;
 
-function todayParts(){
-  const d=new Date();
-  return{y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};
-}
-function getDateVal(){
-  const d=parseInt(document.getElementById('f-day').value),m=parseInt(document.getElementById('f-month-sel').value),y=parseInt(document.getElementById('f-year').value);
-  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-}
-function setDateFields(s){
-  const p=s&&s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-  if(!p)return;
-  document.getElementById('f-day').value=parseInt(p[3]);
-  document.getElementById('f-month-sel').value=parseInt(p[2]);
-  document.getElementById('f-year').value=parseInt(p[1]);
-}
-function initDatePickers(){
-  const {y,m,d}=todayParts();
-  const de=document.getElementById('f-day');
-  de.innerHTML = '';
-  for(let i=1;i<=31;i++){
-    const o=document.createElement('option');
-    o.value=i;
-    o.textContent=i+' วัน';
-    if(i===d)o.selected=true;
-    de.appendChild(o);
-  }
-  const me=document.getElementById('f-month-sel');
-  me.innerHTML = '';
-  monthsShort.forEach((n,i)=>{
-    const o=document.createElement('option');
-    o.value=i+1;
-    o.textContent=n;
-    if(i+1===m)o.selected=true;
-    me.appendChild(o);
-  });
-  const ye=document.getElementById('f-year');
-  ye.innerHTML = '';
-  for(let i=y;i>=y-5;i++){
-    const o=document.createElement('option');
-    o.value=i;
-    o.textContent=i+543;
-    if(i===y)o.selected=true;
-    ye.appendChild(o);
-  }
-}
-function fmt(n){
-  return'฿ = '฿';
-  return'฿'+Math.abs(n).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0});
-}
-function getMonthLabel(ym){
-  const [y,m]=ym.split('-');
-  return monthsShort[parseInt(m)-1]+' '+(parseInt(y)+543);
-}
-function getMonths(){
-  const {y,m}=todayParts();
-  const s=new Set(transactions.map(t=>t.date.slice(0,7)));
-  s.add(`${y}-${String(m).padStart(2,'0')}`);
-  return Array.from(s).sort().reverse();
-}
-function showToast(msg,type=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className='toast show '+type;
-  setTimeout(()=>{t.className='toast';},2500);
-}
-function saveLocal(){
-  localStorage.setItem('txCache',JSON.stringify(transactions));
-}
-function formatDateTH(s){
-  try{
-    const [y,m,d]=s.split('-');
-    return`${parseInt(d)} ${monthsShort[parseInt(m)-1]} ${parseInt(y)+543}`;
-  }catch(e){
-    return s;
-  }
-}
+function todayParts(){const d=new Date();return{y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
+function getDateVal(){const d=parseInt(document.getElementById('f-day').value),m=parseInt(document.getElementById('f-month-sel').value),y=parseInt(document.getElementById('f-year').value);return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function setDateFields(s){const p=s&&s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);if(!p)return;document.getElementById('f-day').value=parseInt(p[3]);document.getElementById('f-month-sel').value=parseInt(p[2]);document.getElementById('f-year').value=parseInt(p[1]);}
+function initDatePickers(){const{y,m,d}=todayParts();const de=document.getElementById('f-day');for(let i=1;i<=31;i++){const o=document.createElement('option');o.value=i;o.textContent=i+' วัน';if(i===d)o.selected=true;de.appendChild(o);}const me=document.getElementById('f-month-sel');monthsShort.forEach((n,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=n;if(i+1===m)o.selected=true;me.appendChild(o);});const ye=document.getElementById('f-year');for(let i=y;i>=y-5;i--){const o=document.createElement('option');o.value=i;o.textContent=i+543;if(i===y)o.selected=true;ye.appendChild(o);}}
+function fmt(n){return'฿'+Math.abs(n).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function getMonthLabel(ym){const[y,m]=ym.split('-');return monthsShort[parseInt(m)-1]+' '+(parseInt(y)+543);}
+function getMonths(){const{y,m}=todayParts();const s=new Set(transactions.map(t=>t.date.slice(0,7)));s.add(`${y}-${String(m).padStart(2,'0')}`);return Array.from(s).sort().reverse();}
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>{t.className='toast';},2500);}
+function saveLocal(){localStorage.setItem('txCache',JSON.stringify(transactions));}
+function formatDateTH(s){try{const[y,m,d]=s.split('-');return`${parseInt(d)} ${monthsShort[parseInt(m)-1]} ${parseInt(y)+543}`;}catch(e){return s;}}
 
 // ── Scan Modal ──
 function openScanModal(){
-  if(!APPS_SCRIPT_URL&&!APPS_SCRIPT_URL){showToast('กรุณาตั้งค่า Apps Script URL ก่อน','error');return;}
+  if(!APPS_SCRIPT_URL){showToast('กรุณาตั้งค่า Apps Script URL ก่อน','error');return;}
   document.getElementById('scan-modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -451,12 +389,11 @@ function closeScanModal(){
   document.getElementById('file-input').value='';
   scanResult=null;
 }
-function handleClickOutside(e){
-  if(e.target===e.currentTarget)closeScanModal();
-}
+function handleOverlayClick(e){if(e.target===e.currentTarget)closeScanModal();}
 
 async function handleFileSelect(e){
   const file=e.target.files[0]; if(!file)return;
+  // Preview
   const reader=new FileReader();
   reader.onload=ev=>{const img=document.getElementById('preview-img');img.src=ev.target.result;img.style.display='block';};
   reader.readAsDataURL(file);
@@ -466,8 +403,10 @@ async function handleFileSelect(e){
   document.getElementById('analyzing').classList.add('show');
   document.getElementById('btn-use').disabled=true;
 
+  // Base64
   const base64=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(file);});
 
+  // Call Apps Script → Gemini
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST', redirect:'follow',
@@ -479,7 +418,7 @@ async function handleFileSelect(e){
     const text=(data.result||'').replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(text);
     scanResult=parsed;
-    document.getElementById('r-amount').textContent=parsed.amount?parsed.amount:'ไม่พบ';
+    document.getElementById('r-amount').textContent=parsed.amount?fmt(parsed.amount):'ไม่พบ';
     document.getElementById('r-date').textContent=parsed.date?formatDateTH(parsed.date):'ไม่พบ';
     document.getElementById('r-note').textContent=parsed.note||'ไม่พบ';
     document.getElementById('r-cat').textContent=parsed.category||'อื่นๆ';
@@ -507,34 +446,18 @@ function useResult(){
 }
 
 // ── Setup ──
-function saveApiUrl(){
-  const url=document.getElementById('api-url-input').value.trim();
-  if(!url)return;
-  APPS_SCRIPT_URL=url;
-  localStorage.setItem('appsScriptUrl',url);
-  document.getElementById('setup-banner').classList.remove('show');
-  showToast('บันทึก URL แล้ว','success');
-  syncNow();
-}
+function saveApiUrl(){const url=document.getElementById('api-url-input').value.trim();if(!url)return;APPS_SCRIPT_URL=url;localStorage.setItem('appsScriptUrl',url);document.getElementById('setup-banner').classList.remove('show');showToast('บันทึก URL แล้ว','success');syncNow();}
 
 // ── Sync ──
-function setSyncState=(s)=>{const btn=document.getElementById('sync-btn'),lbl=document.getElementById('sync-label');btn.className='sync-btn '+s;lbl.textContent=s==='syncing'?'กำลังซิงค์...':s==='ok'?'ซิงค์แล้ว':'ซิงค์';};
+function setSyncState(s){const btn=document.getElementById('sync-btn'),lbl=document.getElementById('sync-label');btn.className='sync-btn '+s;lbl.textContent=s==='syncing'?'กำลังซิงค์...':s==='ok'?'ซิงค์แล้ว':'ซิงค์';}
 async function syncNow(){
   if(!APPS_SCRIPT_URL){document.getElementById('setup-banner').classList.add('show');return;}
   setSyncState('syncing');
-  try{
-    const res=await fetch(APPS_SCRIPT_URL+'?action=get',{redirect:'follow'});
-    const data=await res.json();
-    if(data.rows){
-      transactions=data.rows.map(r=>({id:r[0],type:r[1],amount:parseFloat(r[2]),date:r[3],cat:r[4],note:r[5]}));
-      saveLocal();
-      updateMetrics();
-      populateMonthSelects();
+  try{const res=await fetch(APPS_SCRIPT_URL+'?action=get',{redirect:'follow'});const data=await res.json();
+    if(data.rows){transactions=data.rows.map(r=>({id:r[0],type:r[1],amount:parseFloat(r[2]),date:r[3],cat:r[4],note:r[5]}));saveLocal();updateMetrics();populateMonthSelects();
       if(document.getElementById('tab-history').classList.contains('active'))renderHistory();
       if(document.getElementById('tab-summary').classList.contains('active'))renderSummary();
-      setSyncState('ok');
-      showToast('ซิงค์สำเร็จ ✓','success');
-    }
+      setSyncState('ok');showToast('ซิงค์สำเร็จ ✓','success');}
   }catch(e){setSyncState('');showToast('ซิงค์ไม่สำเร็จ','error');}
 }
 
@@ -545,211 +468,60 @@ async function addTransaction(){
   if(!amount||amount<=0){showToast('กรุณากรอกจำนวนเงิน','error');return;}
   const btn=document.getElementById('submit-btn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
   const tx={id:Date.now().toString(),type:currentType,amount,date,cat,note};
-  transactions.unshift(tx);
-  saveLocal();
-  updateMetrics();
-  populateMonthSelects();
-  document.getElementById('f-amount').value='';
-  document.getElementById('f-note').value='';
-  if(APPS_SCRIPT_URL){
-    try{
-      await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'add',row:[tx.id,tx.type,tx.amount,tx.date,tx.cat,tx.note]}),headers:{'Content-Type':'text/plain'}});
-      showToast('บันทึกแล้ว ✓','success');
-    }catch(e){showToast('บันทึกในเครื่องแล้ว','');}
-  }else{
-    showToast('บันทึกแล้ว ✓','success');
-  }
+  transactions.unshift(tx);saveLocal();updateMetrics();populateMonthSelects();
+  document.getElementById('f-amount').value='';document.getElementById('f-note').value='';
+  if(APPS_SCRIPT_URL){try{await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'add',row:[tx.id,tx.type,tx.amount,tx.date,tx.cat,tx.note]}),headers:{'Content-Type':'text/plain'}});showToast('บันทึกแล้ว ✓','success');}catch(e){showToast('บันทึกในเครื่องแล้ว','');}}
+  else{showToast('บันทึกแล้ว ✓','success');}
   btn.disabled=false;btn.textContent='บันทึกรายการ';
 }
 async function deleteTransaction(id){
   if(!confirm('ลบรายการนี้?'))return;
-  transactions=transactions.filter(t=>t.id!=id);
-  saveLocal();
-  updateMetrics();
-  renderHistory();
-  if(APPS_SCRIPT_URL){
-    try{
-      await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'delete',id}),headers:{'Content-Type':'text/plain'}});
-    }catch(e){}
-  }
+  transactions=transactions.filter(t=>t.id!=id);saveLocal();updateMetrics();renderHistory();
+  if(APPS_SCRIPT_URL){try{await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',body:JSON.stringify({action:'delete',id}),headers:{'Content-Type':'text/plain'}});}catch(e){}}
   showToast('ลบแล้ว','');
 }
 
-function setType(type){
-  currentType=type;
-  document.getElementById('btn-exp').classList.toggle('active',type==='expense');
-  document.getElementById('btn-inc').classList.toggle('active',type==='income');
-  document.getElementById('f-cat').innerHTML=(type==='expense'?expenseCats:incomeCats).map(c=>`<option value="${c}">${c}</option>`).join('');
-}
-function updateMetrics(){
-  const {y,m}=todayParts(),ym=`${y}-${String(m).padStart(2,'0')}`;
-  const mo=transactions.filter(t=>t.date.startsWith(ym));
-  const inc=mo.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
-  const exp=mo.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
-  const bal=inc-exp;
-  document.getElementById('h-inc').textContent='฿'+inc.toLocaleString('th-TH');
-  document.getElementById('h-exp').textContent='฿'+exp.toLocaleString('th-TH');
-  const bEl=document.getElementById('h-bal');
-  bEl.textContent=(bal<0?'-':'')+'฿'+Math.abs(bal).toLocaleString('th-TH');
-  bEl.className='hero-balance'+(bal<0?' neg':'');
-}
+function setType(type){currentType=type;document.getElementById('btn-exp').classList.toggle('active',type==='expense');document.getElementById('btn-inc').classList.toggle('active',type==='income');document.getElementById('f-cat').innerHTML=(type==='expense'?expenseCats:incomeCats).map(c=>`<option>${c}</option>`).join('');}
+function updateMetrics(){const{y,m}=todayParts(),ym=`${y}-${String(m).padStart(2,'0')}`;const mo=transactions.filter(t=>t.date.startsWith(ym));const inc=mo.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);const exp=mo.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);const bal=inc-exp;document.getElementById('h-inc').textContent=fmt(inc);document.getElementById('h-exp').textContent=fmt(exp);const bEl=document.getElementById('h-bal');bEl.textContent=(bal<0?'-':'')+fmt(bal);bEl.className='hero-balance'+(bal<0?' neg':'');}
+function populateMonthSelects(){const months=getMonths();['f-month','s-month'].forEach(id=>{const el=document.getElementById(id),cur=el.value||months[0];el.innerHTML=months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${getMonthLabel(m)}</option>`).join('');});}
 
-function populateMonthSelects(){
-  const months=getMonths();
-  ['f-month','s-month'].forEach(id=>{
-    const el=document.getElementById(id),cur=el.value||months[0];
-    el.innerHTML=months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${getMonthLabel(m)}</option>`).join('');
-  });
-  if(months.length > 0) {
-    document.getElementById('cur-month').textContent = getMonthLabel(months[0]);
-  }
-}
-
-// ── History Rendering ──
 function renderHistory(){
-  const typeF=document.getElementById('f-type').value;
-  const monthF=document.getElementById('f-month').value;
-  let data=transactions.filter(t=>t.date.startsWith(monthF));
-  
-  if(typeF!=='all'){
-    data=data.filter(t=>t.type===typeF);
-  }
-
-  const container=document.getElementById('tx-list');
-  if(data.length===0){
-    container.innerHTML=`<div class="empty">ไม่มีรายการในเดือนนี้</div>`;
-    return;
-  }
-
-  const groups={};
-  data.forEach(t=>{
-    if(!groups[t.date])groups[t.date]=[];
-    groups[t.date].push(t);
-  });
-
-  let html='';
-  Object.keys(groups).sort().reverse().forEach(date=>{
-    html+=`
-      <div class="day-group">
-        <div class="day-label">${formatDateTH(date)}</div>
-        ${groups[date].map(t=>`
-          <div class="tx-item">
-            <div class="tx-left">
-              <div class="tx-icon ${t.type}">${icons[t.cat] || '📌'}</div>
-              <div class="tx-info">
-                <div class="tx-name">${t.note}</div>
-                <div class="tx-cat">${t.cat}</div>
-              </div>
-            </div>
-            <div class="tx-right">
-              <div class="tx-amount ${t.type==='income'?'inc':'exp'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div>
-              <button class="tx-del" onclick="deleteTransaction('${t.id}')">ลบ</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  });
-  container.innerHTML=html;
+  const typeF=document.getElementById('f-type').value,monthF=document.getElementById('f-month').value;
+  let data=transactions.filter(t=>t.date.startsWith(monthF));if(typeF!=='all')data=data.filter(t=>t.type===typeF);
+  const container=document.getElementById('tx-list');if(!data.length){container.innerHTML='<div class="empty">ไม่มีรายการในเดือนนี้</div>';return;}
+  const byDay={};data.forEach(t=>{if(!byDay[t.date])byDay[t.date]=[];byDay[t.date].push(t);});
+  container.innerHTML=Object.keys(byDay).sort().reverse().map(day=>{
+    const label=new Date(day+'T12:00:00').toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'});
+    return`<div class="day-group"><div class="day-label">${label}</div>${byDay[day].map(t=>`<div class="tx-item"><div class="tx-left"><div class="tx-icon ${t.type}">${icons[t.cat]||'📌'}</div><div class="tx-info"><div class="tx-name">${t.note}</div><div class="tx-cat">${t.cat}</div></div></div><div class="tx-right"><div class="tx-amount ${t.type==='income'?'inc':'exp'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div><button class="tx-del" onclick="deleteTransaction('${t.id}')">ลบ</button></div></div>`).join('')}</div>`;
+  }).join('');
 }
 
-// ── Summary Rendering ──
 function renderSummary(){
-  const monthF = document.getElementById('s-month').value;
-  const data = transactions.filter(t=>t.date.startsWith(monthF));
-  const inc = data.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);
-  const exp = data.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);
-  const bal = inc-exp;
-
-  document.getElementById('s-inc').textContent=fmt(inc);
-  document.getElementById('s-exp').textContent=fmt(exp);
-  
-  const sBal=document.getElementById('s-bal');
-  sBal.textContent=fmt(bal);
-  sBal.className='sum-card-val '+(bal>=0?'pos':'neg');
-
-  const catObj={};
-  expenseCats.forEach(c=>catObj[c]=0);
-
-  data.filter(t=>t.type==='expense').forEach(t=>{
-    if(catObj[t.cat]!==undefined){
-      catObj[t.cat]+=t.amount;
-    }else{
-      catObj['อื่นๆ']+=t.amount;
-    }
-  });
-
-  let maxVal=Math.max(...Object.values(catObj),1);
+  const ym=document.getElementById('s-month').value;const data=transactions.filter(t=>t.date.startsWith(ym));
+  const inc=data.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);const exp=data.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);const bal=inc-exp;
+  document.getElementById('s-inc').textContent=fmt(inc);document.getElementById('s-exp').textContent=fmt(exp);
+  const sEl=document.getElementById('s-bal');sEl.textContent=(bal<0?'-':'')+fmt(bal);sEl.className='sum-card-val '+(bal>=0?'pos':'neg');
+  const[y,m]=ym.split('-'),dim=new Date(parseInt(y),parseInt(m),0).getDate();
+  const labels=Array.from({length:dim},(_,i)=>i+1);
+  const incD=labels.map(d=>data.filter(t=>t.date===ym+'-'+String(d).padStart(2,'0')&&t.type==='income').reduce((a,t)=>a+t.amount,0));
+  const expD=labels.map(d=>data.filter(t=>t.date===ym+'-'+String(d).padStart(2,'0')&&t.type==='expense').reduce((a,t)=>a+t.amount,0));
+  if(barInst){barInst.destroy();barInst=null;}
+  barInst=new Chart(document.getElementById('barChart').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'รายรับ',data:incD,backgroundColor:'rgba(5,150,105,0.6)',borderRadius:3},{label:'รายจ่าย',data:expD,backgroundColor:'rgba(220,38,38,0.5)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8aa8c8',font:{size:9,family:'Noto Sans Thai'}},grid:{display:false}},y:{ticks:{color:'#8aa8c8',font:{size:9,family:'Noto Sans Thai'},callback:v=>'฿'+v.toLocaleString()},grid:{color:'rgba(59,130,246,0.07)'}}}}});
+  const cats={};data.filter(t=>t.type==='expense').forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+t.amount;});
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]),maxVal=sorted[0]?.[1]||1;
   const catList=document.getElementById('cat-list');
-  
-  catList.innerHTML=Object.entries(catObj).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>`
-    <div class="cat-item">
-      <div class="cat-icon">${icons[cat] || '📌'}</div>
-      <div class="cat-info">
-        <div class="cat-name">${cat}</div>
-        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(val/maxVal)*100}%"></div></div>
-      </div>
-      <div class="cat-val">-${fmt(val)}</div>
-    </div>
-  `).join('') || '<div class="empty">ไม่มีรายจ่าย</div>';
-
-  if(barInst)barInst.destroy();
-  const ctx=document.getElementById('barChart').getContext('2d');
-  barInst=new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:[monthsShort[parseInt(monthF.split('-')[1])-1]],
-      datasets:[
-        { label:'รายรับ',data:[inc],backgroundColor:'#059669' },
-        { label:'รายจ่าย',data:[exp],backgroundColor:'#dc2626' }
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      scales:{y:{beginAtZero:true}}
-    }
-  });
+  if(!sorted.length){catList.innerHTML='<div class="empty">ไม่มีรายจ่าย</div>';return;}
+  catList.innerHTML=sorted.map(([cat,val])=>`<div class="cat-item"><div class="cat-icon">${icons[cat]||'📌'}</div><div class="cat-info"><div class="cat-name">${cat}</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(val/maxVal*100)}%"></div></div></div><div class="cat-val">${fmt(val)}</div></div>`).join('');
 }
 
-function switchTab(tabName){
-  const tabs=document.querySelectorAll('.tab');
-  const sections=document.querySelectorAll('.section');
-  tabs.forEach(t=>t.classList.remove('active'));
-  sections.forEach(s=>s.classList.remove('active'));
+function switchTab(name){document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['add','history','summary'][i]===name));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active');if(name==='history')renderHistory();if(name==='summary')renderSummary();}
 
-  if(tabName==='add'){
-    tabs[0].classList.add('active');
-    document.getElementById('tab-add').classList.add('active');
-  }else if(tabName==='history'){
-    tabs[1].classList.add('active');
-    document.getElementById('tab-history').classList.add('active');
-    renderHistory();
-  }else if(tabName==='summary'){
-    tabs[2].classList.add('active');
-    document.getElementById('tab-summary').classList.add('active');
-    renderSummary();
-  }
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-  initDatePickers();
-  setType('expense');
-  populateMonthSelects();
-  updateMetrics();
-  
-  const {y, m}=todayParts();
-  const curMonthVal = `${y}-${String(m).padStart(2,'0')}`;
-  if(!document.getElementById('f-month').value) document.getElementById('f-month').value = curMonthVal;
-  if(!document.getElementById('s-month').value) document.getElementById('s-month').value = curMonthVal;
-  
-  renderHistory();
-  renderSummary();
-  
-  if(!APPS_SCRIPT_URL){
-    document.getElementById('setup-banner').classList.add('show');
-  }
-});
+// Init
+const nowD=new Date();
+document.getElementById('cur-month').textContent=monthsFull[nowD.getMonth()]+' '+(nowD.getFullYear()+543);
+initDatePickers();setType('expense');populateMonthSelects();updateMetrics();
+if(!APPS_SCRIPT_URL)document.getElementById('setup-banner').classList.add('show');
+if(APPS_SCRIPT_URL)syncNow();
 </script>
 </body>
 </html>

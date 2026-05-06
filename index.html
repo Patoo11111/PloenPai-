@@ -227,7 +227,6 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <button class="tab" onclick="switchTab('summary')">สรุป</button>
 </div>
 
-<!-- ADD -->
 <div id="tab-add" class="section active">
   <div class="setup-banner" id="setup-banner">
     <strong>ตั้งค่า Google Sheets</strong><br>
@@ -269,7 +268,6 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <button class="submit" id="submit-btn" onclick="addTransaction()">บันทึกรายการ</button>
 </div>
 
-<!-- HISTORY -->
 <div id="tab-history" class="section">
   <div class="filter-row">
     <select id="f-type" onchange="renderHistory()">
@@ -282,7 +280,6 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <div id="tx-list"></div>
 </div>
 
-<!-- SUMMARY -->
 <div id="tab-summary" class="section">
   <div class="month-pick">
     <label>เดือน</label>
@@ -304,7 +301,6 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
   <div id="cat-list"></div>
 </div>
 
-<!-- Scan Modal -->
 <div class="modal-overlay" id="scan-modal" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -393,7 +389,6 @@ function handleOverlayClick(e){if(e.target===e.currentTarget)closeScanModal();}
 
 async function handleFileSelect(e){
   const file=e.target.files[0]; if(!file)return;
-  // Preview
   const reader=new FileReader();
   reader.onload=ev=>{const img=document.getElementById('preview-img');img.src=ev.target.result;img.style.display='block';};
   reader.readAsDataURL(file);
@@ -403,10 +398,8 @@ async function handleFileSelect(e){
   document.getElementById('analyzing').classList.add('show');
   document.getElementById('btn-use').disabled=true;
 
-  // Base64
   const base64=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(file);});
 
-  // Call Apps Script → Gemini
   try{
     const res=await fetch(APPS_SCRIPT_URL,{
       method:'POST', redirect:'follow',
@@ -449,7 +442,7 @@ function useResult(){
 function saveApiUrl(){const url=document.getElementById('api-url-input').value.trim();if(!url)return;APPS_SCRIPT_URL=url;localStorage.setItem('appsScriptUrl',url);document.getElementById('setup-banner').classList.remove('show');showToast('บันทึก URL แล้ว','success');syncNow();}
 
 // ── Sync ──
-function setSyncState(s){const btn=document.getElementById('sync-btn'),lbl=document.getElementById('sync-label');btn.className='sync-btn '+s;lbl.textContent=s==='syncing'?'กำลังซิงค์...':s==='ok'?'ซิงค์แล้ว':'ซิงค์';}
+function setSyncState=(s)=>{const btn=document.getElementById('sync-btn'),lbl=document.getElementById('sync-label');btn.className='sync-btn '+s;lbl.textContent=s==='syncing'?'กำลังซิงค์...':s==='ok'?'ซิงค์แล้ว':'ซิงค์';};
 async function syncNow(){
   if(!APPS_SCRIPT_URL){document.getElementById('setup-banner').classList.add('show');return;}
   setSyncState('syncing');
@@ -485,43 +478,169 @@ function setType(type){currentType=type;document.getElementById('btn-exp').class
 function updateMetrics(){const{y,m}=todayParts(),ym=`${y}-${String(m).padStart(2,'0')}`;const mo=transactions.filter(t=>t.date.startsWith(ym));const inc=mo.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);const exp=mo.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);const bal=inc-exp;document.getElementById('h-inc').textContent=fmt(inc);document.getElementById('h-exp').textContent=fmt(exp);const bEl=document.getElementById('h-bal');bEl.textContent=(bal<0?'-':'')+fmt(bal);bEl.className='hero-balance'+(bal<0?' neg':'');}
 function populateMonthSelects(){const months=getMonths();['f-month','s-month'].forEach(id=>{const el=document.getElementById(id),cur=el.value||months[0];el.innerHTML=months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${getMonthLabel(m)}</option>`).join('');});}
 
+// ── Tab Management ──
+function switchTab(tab) {
+  const tabs = document.querySelectorAll('.tab');
+  const sections = document.querySelectorAll('.section');
+  
+  tabs.forEach(t => t.classList.remove('active'));
+  sections.forEach(s => s.classList.remove('active'));
+  
+  if (tab === 'add') {
+    tabs[0].classList.add('active');
+    document.getElementById('tab-add').classList.add('active');
+  } else if (tab === 'history') {
+    tabs[1].classList.add('active');
+    document.getElementById('tab-history').classList.add('active');
+    renderHistory();
+  } else if (tab === 'summary') {
+    tabs[2].classList.add('active');
+    document.getElementById('tab-summary').classList.add('active');
+    renderSummary();
+  }
+}
+
 function renderHistory(){
-  const typeF=document.getElementById('f-type').value,monthF=document.getElementById('f-month').value;
-  let data=transactions.filter(t=>t.date.startsWith(monthF));if(typeF!=='all')data=data.filter(t=>t.type===typeF);
-  const container=document.getElementById('tx-list');if(!data.length){container.innerHTML='<div class="empty">ไม่มีรายการในเดือนนี้</div>';return;}
-  const byDay={};data.forEach(t=>{if(!byDay[t.date])byDay[t.date]=[];byDay[t.date].push(t);});
-  container.innerHTML=Object.keys(byDay).sort().reverse().map(day=>{
-    const label=new Date(day+'T12:00:00').toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'});
-    return`<div class="day-group"><div class="day-label">${label}</div>${byDay[day].map(t=>`<div class="tx-item"><div class="tx-left"><div class="tx-icon ${t.type}">${icons[t.cat]||'📌'}</div><div class="tx-info"><div class="tx-name">${t.note}</div><div class="tx-cat">${t.cat}</div></div></div><div class="tx-right"><div class="tx-amount ${t.type==='income'?'inc':'exp'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</div><button class="tx-del" onclick="deleteTransaction('${t.id}')">ลบ</button></div></div>`).join('')}</div>`;
-  }).join('');
+  const typeF = document.getElementById('f-type').value, monthF = document.getElementById('f-month').value;
+  let data = transactions.filter(t => t.date.startsWith(monthF));
+  
+  if (typeF !== 'all') {
+    data = data.filter(t => t.type === typeF);
+  }
+  
+  const list = document.getElementById('tx-list');
+  list.innerHTML = '';
+  
+  if (data.length === 0) {
+    list.innerHTML = '<div class="empty">ไม่มีรายการ</div>';
+    return;
+  }
+  
+  const groups = {};
+  data.forEach(t => {
+    if (!groups[t.date]) groups[t.date] = [];
+    groups[t.date].push(t);
+  });
+  
+  let html = '';
+  Object.keys(groups).sort().reverse().forEach(date => {
+    html += `
+      <div class="day-group">
+        <div class="day-label">${formatDateTH(date)}</div>
+        ${groups[date].map(t => `
+          <div class="tx-item">
+            <div class="tx-left">
+              <div class="tx-icon ${t.type}">${icons[t.cat] || '📌'}</div>
+              <div class="tx-info">
+                <div class="tx-name">${t.note}</div>
+                <div class="tx-cat">${t.cat}</div>
+              </div>
+            </div>
+            <div class="tx-right">
+              <div class="tx-amount ${t.type === 'income' ? 'inc' : 'exp'}">
+                ${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}
+              </div>
+              <button class="tx-del" onclick="deleteTransaction('${t.id}')">ลบ</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  });
+  list.innerHTML = html;
 }
 
-function renderSummary(){
-  const ym=document.getElementById('s-month').value;const data=transactions.filter(t=>t.date.startsWith(ym));
-  const inc=data.filter(t=>t.type==='income').reduce((a,t)=>a+t.amount,0);const exp=data.filter(t=>t.type==='expense').reduce((a,t)=>a+t.amount,0);const bal=inc-exp;
-  document.getElementById('s-inc').textContent=fmt(inc);document.getElementById('s-exp').textContent=fmt(exp);
-  const sEl=document.getElementById('s-bal');sEl.textContent=(bal<0?'-':'')+fmt(bal);sEl.className='sum-card-val '+(bal>=0?'pos':'neg');
-  const[y,m]=ym.split('-'),dim=new Date(parseInt(y),parseInt(m),0).getDate();
-  const labels=Array.from({length:dim},(_,i)=>i+1);
-  const incD=labels.map(d=>data.filter(t=>t.date===ym+'-'+String(d).padStart(2,'0')&&t.type==='income').reduce((a,t)=>a+t.amount,0));
-  const expD=labels.map(d=>data.filter(t=>t.date===ym+'-'+String(d).padStart(2,'0')&&t.type==='expense').reduce((a,t)=>a+t.amount,0));
-  if(barInst){barInst.destroy();barInst=null;}
-  barInst=new Chart(document.getElementById('barChart').getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'รายรับ',data:incD,backgroundColor:'rgba(5,150,105,0.6)',borderRadius:3},{label:'รายจ่าย',data:expD,backgroundColor:'rgba(220,38,38,0.5)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8aa8c8',font:{size:9,family:'Noto Sans Thai'}},grid:{display:false}},y:{ticks:{color:'#8aa8c8',font:{size:9,family:'Noto Sans Thai'},callback:v=>'฿'+v.toLocaleString()},grid:{color:'rgba(59,130,246,0.07)'}}}}});
-  const cats={};data.filter(t=>t.type==='expense').forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+t.amount;});
-  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]),maxVal=sorted[0]?.[1]||1;
-  const catList=document.getElementById('cat-list');
-  if(!sorted.length){catList.innerHTML='<div class="empty">ไม่มีรายจ่าย</div>';return;}
-  catList.innerHTML=sorted.map(([cat,val])=>`<div class="cat-item"><div class="cat-icon">${icons[cat]||'📌'}</div><div class="cat-info"><div class="cat-name">${cat}</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(val/maxVal*100)}%"></div></div></div><div class="cat-val">${fmt(val)}</div></div>`).join('');
+function renderSummary() {
+  const monthF = document.getElementById('s-month').value;
+  let data = transactions.filter(t => t.date.startsWith(monthF));
+  
+  const inc = data.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const exp = data.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const bal = inc - exp;
+  
+  document.getElementById('s-inc').textContent = fmt(inc);
+  document.getElementById('s-exp').textContent = fmt(exp);
+  
+  const bEl = document.getElementById('s-bal');
+  bEl.textContent = fmt(bal);
+  bEl.className = 'sum-card-val ' + (bal >= 0 ? 'pos' : 'neg');
+  
+  const cats = {};
+  expenseCats.forEach(c => cats[c] = 0);
+  data.filter(t => t.type === 'expense').forEach(t => {
+    if (cats[t.cat] !== undefined) cats[t.cat] += t.amount;
+    else cats['อื่นๆ'] += t.amount;
+  });
+  
+  const catList = document.getElementById('cat-list');
+  let catHtml = '';
+  const maxExpense = Math.max(...Object.values(cats), 1);
+  for (const [cat, val] of Object.entries(cats)) {
+    if (val > 0) {
+      catHtml += `
+        <div class="cat-item">
+          <div class="cat-icon">${icons[cat] || '📌'}</div>
+          <div class="cat-info">
+            <div class="cat-name">${cat}</div>
+            <div class="cat-bar-track">
+              <div class="cat-bar-fill" style="width: ${(val / maxExpense) * 100}%;"></div>
+            </div>
+          </div>
+          <div class="cat-val">${fmt(val)}</div>
+        </div>
+      `;
+    }
+  }
+  catList.innerHTML = catHtml || '<div class="empty">ไม่มีรายจ่าย</div>';
+  
+  if (barInst) barInst.destroy();
+  const ctx = document.getElementById('barChart').getContext('2d');
+  barInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [getMonthLabel(monthF)],
+      datasets: [
+        {
+          label: 'รายรับ',
+          data: [inc],
+          backgroundColor: '#059669',
+          borderRadius: 4
+        },
+        {
+          label: 'รายจ่าย',
+          data: [exp],
+          backgroundColor: '#dc2626',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
 }
 
-function switchTab(name){document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['add','history','summary'][i]===name));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active');if(name==='history')renderHistory();if(name==='summary')renderSummary();}
+document.addEventListener("DOMContentLoaded", () => {
+  const { y, m } = todayParts();
+  const ym = `${y}-${String(m).padStart(2, '0')}`;
+  document.getElementById("cur-month").textContent = monthsFull[m - 1] + " " + (y + 543);
+  initDatePickers();
+  setType('expense');
+  updateMetrics();
+  populateMonthSelects();
 
-// Init
-const nowD=new Date();
-document.getElementById('cur-month').textContent=monthsFull[nowD.getMonth()]+' '+(nowD.getFullYear()+543);
-initDatePickers();setType('expense');populateMonthSelects();updateMetrics();
-if(!APPS_SCRIPT_URL)document.getElementById('setup-banner').classList.add('show');
-if(APPS_SCRIPT_URL)syncNow();
+  document.getElementById('f-month').value = ym;
+  document.getElementById('s-month').value = ym;
+
+  renderHistory();
+  renderSummary();
+});
 </script>
 </body>
 </html>
